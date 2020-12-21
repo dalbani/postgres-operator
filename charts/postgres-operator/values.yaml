@@ -232,7 +232,7 @@ configAwsOrGcp:
   # defines maximum volume size in GB until which auto migration happens
   # enable_ebs_gp3_migration_max_size: 1000
 
-  # GCP credentials for setting the GOOGLE_APPLICATION_CREDNETIALS environment variable
+  # GCP credentials for setting the GOOGLE_APPLICATION_CREDENTIALS environment variable
   # gcp_credentials: ""
 
   # AWS IAM role to supply in the iam.amazonaws.com/role annotation of Postgres pods
