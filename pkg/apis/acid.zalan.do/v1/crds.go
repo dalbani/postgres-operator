@@ -112,9 +112,8 @@ var minDisable = -1.0
 // PostgresCRDResourceValidation to check applied manifest parameters
 var PostgresCRDResourceValidation = apiextv1.CustomResourceValidation{
 	OpenAPIV3Schema: &apiextv1.JSONSchemaProps{
-		Type:                   "object",
-		XPreserveUnknownFields: util.True(),
-		Required:               []string{"kind", "apiVersion", "spec"},
+		Type:     "object",
+		Required: []string{"kind", "apiVersion", "spec"},
 		Properties: map[string]apiextv1.JSONSchemaProps{
 			"kind": {
 				Type: "string",
@@ -136,6 +135,38 @@ var PostgresCRDResourceValidation = apiextv1.CustomResourceValidation{
 				Type:     "object",
 				Required: []string{"numberOfInstances", "teamId", "postgresql", "volume"},
 				Properties: map[string]apiextv1.JSONSchemaProps{
+					"additionalVolumes": {
+						Type: "array",
+						Items: &apiextv1.JSONSchemaPropsOrArray{
+							Schema: &apiextv1.JSONSchemaProps{
+								Type:     "object",
+								Required: []string{"name", "mountPath", "volumeSource"},
+								Properties: map[string]apiextv1.JSONSchemaProps{
+									"name": {
+										Type: "string",
+									},
+									"mountPath": {
+										Type: "string",
+									},
+									"targetContainers": {
+										Type: "array",
+										Items: &apiextv1.JSONSchemaPropsOrArray{
+											Schema: &apiextv1.JSONSchemaProps{
+												Type: "string",
+											},
+										},
+									},
+									"volumeSource": {
+										Type:                   "object",
+										XPreserveUnknownFields: util.True(),
+									},
+									"subPath": {
+										Type: "string",
+									},
+								},
+							},
+						},
+					},
 					"allowedSourceRanges": {
 						Type:     "array",
 						Nullable: true,
@@ -171,7 +202,7 @@ var PostgresCRDResourceValidation = apiextv1.CustomResourceValidation{
 							"timestamp": {
 								Type:        "string",
 								Description: "Date-time format that specifies a timezone as an offset relative to UTC e.g. 1996-12-19T16:39:57-08:00",
-								Pattern:     "^([0-9]+)-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])[Tt]([01][0-9]|2[0-3]):([0-5][0-9]):([0-5][0-9]|60)(\\.[0-9]+)?(([Zz])|([+-]([01][0-9]|2[0-3]):[0-5][0-9]))$",
+								Pattern:     "^([0-9]+)-(0[1-9]|1[012])-(0[1-9]|[12][0-9]|3[01])[Tt]([01][0-9]|2[0-3]):([0-5][0-9]):([0-5][0-9]|60)(\\.[0-9]+)?(([+-]([01][0-9]|2[0-3]):[0-5][0-9]))$",
 							},
 							"uid": {
 								Type:   "string",
@@ -284,10 +315,8 @@ var PostgresCRDResourceValidation = apiextv1.CustomResourceValidation{
 						Description: "Deprecated",
 						Items: &apiextv1.JSONSchemaPropsOrArray{
 							Schema: &apiextv1.JSONSchemaProps{
-								Type: "object",
-								AdditionalProperties: &apiextv1.JSONSchemaPropsOrBool{
-									Allows: true,
-								},
+								Type:                   "object",
+								XPreserveUnknownFields: util.True(),
 							},
 						},
 					},
@@ -295,10 +324,8 @@ var PostgresCRDResourceValidation = apiextv1.CustomResourceValidation{
 						Type: "array",
 						Items: &apiextv1.JSONSchemaPropsOrArray{
 							Schema: &apiextv1.JSONSchemaProps{
-								Type: "object",
-								AdditionalProperties: &apiextv1.JSONSchemaPropsOrBool{
-									Allows: true,
-								},
+								Type:                   "object",
+								XPreserveUnknownFields: util.True(),
 							},
 						},
 					},
@@ -330,6 +357,12 @@ var PostgresCRDResourceValidation = apiextv1.CustomResourceValidation{
 									},
 								},
 							},
+							"loop_wait": {
+								Type: "integer",
+							},
+							"maximum_lag_on_failover": {
+								Type: "integer",
+							},
 							"pg_hba": {
 								Type: "array",
 								Items: &apiextv1.JSONSchemaPropsOrArray{
@@ -337,6 +370,9 @@ var PostgresCRDResourceValidation = apiextv1.CustomResourceValidation{
 										Type: "string",
 									},
 								},
+							},
+							"retry_timeout": {
+								Type: "integer",
 							},
 							"slots": {
 								Type: "object",
@@ -351,23 +387,14 @@ var PostgresCRDResourceValidation = apiextv1.CustomResourceValidation{
 									},
 								},
 							},
-							"ttl": {
-								Type: "integer",
-							},
-							"loop_wait": {
-								Type: "integer",
-							},
-							"retry_timeout": {
-								Type: "integer",
-							},
-							"maximum_lag_on_failover": {
-								Type: "integer",
-							},
 							"synchronous_mode": {
 								Type: "boolean",
 							},
 							"synchronous_mode_strict": {
 								Type: "boolean",
+							},
+							"ttl": {
+								Type: "integer",
 							},
 						},
 					},
@@ -508,6 +535,9 @@ var PostgresCRDResourceValidation = apiextv1.CustomResourceValidation{
 							},
 						},
 					},
+					"schedulerName": {
+						Type: "string",
+					},
 					"serviceAnnotations": {
 						Type: "object",
 						AdditionalProperties: &apiextv1.JSONSchemaPropsOrBool{
@@ -520,10 +550,8 @@ var PostgresCRDResourceValidation = apiextv1.CustomResourceValidation{
 						Type: "array",
 						Items: &apiextv1.JSONSchemaPropsOrArray{
 							Schema: &apiextv1.JSONSchemaProps{
-								Type: "object",
-								AdditionalProperties: &apiextv1.JSONSchemaPropsOrBool{
-									Allows: true,
-								},
+								Type:                   "object",
+								XPreserveUnknownFields: util.True(),
 							},
 						},
 					},
@@ -566,6 +594,91 @@ var PostgresCRDResourceValidation = apiextv1.CustomResourceValidation{
 							},
 							"caSecretName": {
 								Type: "string",
+							},
+						},
+					},
+					"nodeAffinity": {
+						Type: "object",
+						Properties: map[string]apiextv1.JSONSchemaProps{
+							"preferredDuringSchedulingIgnoredDuringExecution": {
+								Type: "array",
+								Items: &apiextv1.JSONSchemaPropsOrArray{
+									Schema: &apiextv1.JSONSchemaProps{
+										Type:     "object",
+										Required: []string{"preference, weight"},
+										Properties: map[string]apiextv1.JSONSchemaProps{
+											"preference": {
+												Type: "object",
+												Properties: map[string]apiextv1.JSONSchemaProps{
+													"matchExpressions": {
+														Type: "array",
+														Items: &apiextv1.JSONSchemaPropsOrArray{
+															Schema: &apiextv1.JSONSchemaProps{
+																Type: "object",
+																AdditionalProperties: &apiextv1.JSONSchemaPropsOrBool{
+																	Allows: true,
+																},
+															},
+														},
+													},
+													"matchFields": {
+														Type: "array",
+														Items: &apiextv1.JSONSchemaPropsOrArray{
+															Schema: &apiextv1.JSONSchemaProps{
+																Type: "object",
+																AdditionalProperties: &apiextv1.JSONSchemaPropsOrBool{
+																	Allows: true,
+																},
+															},
+														},
+													},
+												},
+											},
+											"weight": {
+												Type:   "integer",
+												Format: "int32",
+											},
+										},
+									},
+								},
+							},
+							"requiredDuringSchedulingIgnoredDuringExecution": {
+								Type:     "object",
+								Required: []string{"nodeSelectorTerms"},
+								Properties: map[string]apiextv1.JSONSchemaProps{
+									"nodeSelectorTerms": {
+										Type: "array",
+										Items: &apiextv1.JSONSchemaPropsOrArray{
+											Schema: &apiextv1.JSONSchemaProps{
+												Type: "object",
+												Properties: map[string]apiextv1.JSONSchemaProps{
+													"matchExpressions": {
+														Type: "array",
+														Items: &apiextv1.JSONSchemaPropsOrArray{
+															Schema: &apiextv1.JSONSchemaProps{
+																Type: "object",
+																AdditionalProperties: &apiextv1.JSONSchemaPropsOrBool{
+																	Allows: true,
+																},
+															},
+														},
+													},
+													"matchFields": {
+														Type: "array",
+														Items: &apiextv1.JSONSchemaPropsOrArray{
+															Schema: &apiextv1.JSONSchemaProps{
+																Type: "object",
+																AdditionalProperties: &apiextv1.JSONSchemaPropsOrBool{
+																	Allows: true,
+																},
+															},
+														},
+													},
+												},
+											},
+										},
+									},
+								},
 							},
 						},
 					},
@@ -736,37 +849,6 @@ var PostgresCRDResourceValidation = apiextv1.CustomResourceValidation{
 							},
 						},
 					},
-					"additionalVolumes": {
-						Type: "array",
-						Items: &apiextv1.JSONSchemaPropsOrArray{
-							Schema: &apiextv1.JSONSchemaProps{
-								Type:     "object",
-								Required: []string{"name", "mountPath", "volumeSource"},
-								Properties: map[string]apiextv1.JSONSchemaProps{
-									"name": {
-										Type: "string",
-									},
-									"mountPath": {
-										Type: "string",
-									},
-									"targetContainers": {
-										Type: "array",
-										Items: &apiextv1.JSONSchemaPropsOrArray{
-											Schema: &apiextv1.JSONSchemaProps{
-												Type: "string",
-											},
-										},
-									},
-									"volumeSource": {
-										Type: "object",
-									},
-									"subPath": {
-										Type: "string",
-									},
-								},
-							},
-						},
-					},
 				},
 			},
 			"status": {
@@ -784,9 +866,8 @@ var PostgresCRDResourceValidation = apiextv1.CustomResourceValidation{
 // OperatorConfigCRDResourceValidation to check applied manifest parameters
 var OperatorConfigCRDResourceValidation = apiextv1.CustomResourceValidation{
 	OpenAPIV3Schema: &apiextv1.JSONSchemaProps{
-		Type:                   "object",
-		XPreserveUnknownFields: util.True(),
-		Required:               []string{"kind", "apiVersion", "configuration"},
+		Type:     "object",
+		Required: []string{"kind", "apiVersion", "configuration"},
 		Properties: map[string]apiextv1.JSONSchemaProps{
 			"kind": {
 				Type: "string",
@@ -817,6 +898,9 @@ var OperatorConfigCRDResourceValidation = apiextv1.CustomResourceValidation{
 						Type: "boolean",
 					},
 					"enable_shm_volume": {
+						Type: "boolean",
+					},
+					"enable_spilo_wal_path_compat": {
 						Type: "boolean",
 					},
 					"etcd_host": {
@@ -856,10 +940,8 @@ var OperatorConfigCRDResourceValidation = apiextv1.CustomResourceValidation{
 						Type: "array",
 						Items: &apiextv1.JSONSchemaPropsOrArray{
 							Schema: &apiextv1.JSONSchemaProps{
-								Type: "object",
-								AdditionalProperties: &apiextv1.JSONSchemaPropsOrBool{
-									Allows: true,
-								},
+								Type:                   "object",
+								XPreserveUnknownFields: util.True(),
 							},
 						},
 					},
@@ -964,6 +1046,14 @@ var OperatorConfigCRDResourceValidation = apiextv1.CustomResourceValidation{
 												Type: "boolean",
 											},
 										},
+									},
+								},
+							},
+							"inherited_annotations": {
+								Type: "array",
+								Items: &apiextv1.JSONSchemaPropsOrArray{
+									Schema: &apiextv1.JSONSchemaProps{
+										Type: "string",
 									},
 								},
 							},
@@ -1175,6 +1265,15 @@ var OperatorConfigCRDResourceValidation = apiextv1.CustomResourceValidation{
 							"aws_region": {
 								Type: "string",
 							},
+							"enable_ebs_gp3_migration": {
+								Type: "boolean",
+							},
+							"enable_ebs_gp3_migration_max_size": {
+								Type: "integer",
+							},
+							"gcp_credentials": {
+								Type: "string",
+							},
 							"kube_iam_role": {
 								Type: "string",
 							},
@@ -1190,6 +1289,12 @@ var OperatorConfigCRDResourceValidation = apiextv1.CustomResourceValidation{
 						Type: "object",
 						Properties: map[string]apiextv1.JSONSchemaProps{
 							"logical_backup_docker_image": {
+								Type: "string",
+							},
+							"logical_backup_google_application_credentials": {
+								Type: "string",
+							},
+							"logical_backup_provider": {
 								Type: "string",
 							},
 							"logical_backup_s3_access_key_id": {
@@ -1404,7 +1509,7 @@ func buildCRD(name, kind, plural, short string, columns []apiextv1.CustomResourc
 			},
 			Scope: apiextv1.NamespaceScoped,
 			Versions: []apiextv1.CustomResourceDefinitionVersion{
-				apiextv1.CustomResourceDefinitionVersion{
+				{
 					Name:    SchemeGroupVersion.Version,
 					Served:  true,
 					Storage: true,

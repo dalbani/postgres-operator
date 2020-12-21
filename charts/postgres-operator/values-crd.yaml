@@ -8,17 +8,14 @@ image:
 # Secrets must be manually created in the namespace.
 # ref: https://kubernetes.io/docs/concepts/containers/images/#specifying-imagepullsecrets-on-a-pod
 # imagePullSecrets:
-#   - name: myRegistryKeySecretName
+  # - name: myRegistryKeySecretName
 
 podAnnotations: {}
 podLabels: {}
 
 configTarget: "OperatorConfigurationCRD"
 
-# JSON logging format
-enableJsonLogging: false
-
-# general configuration parameters
+# general top-level configuration parameters
 configGeneral:
   # choose if deployment creates/updates CRDs with OpenAPIV3Validation
   enable_crd_validation: true
@@ -48,7 +45,8 @@ configGeneral:
   # set_memory_request_to_limit: false
 
   # map of sidecar names to docker images
-  # sidecar_docker_images: ""
+  # sidecar_docker_images
+  #  example: "exampleimage:exampletag"
 
   # number of routines the operator spawns to process requests concurrently
   workers: 8
@@ -97,12 +95,12 @@ configKubernetes:
 
   # list of annotation keys that can be inherited from the cluster manifest
   # inherited_annotations:
-  #   - owned-by
+  # - owned-by
 
   # list of label keys that can be inherited from the cluster manifest
   # inherited_labels:
-  #   - application
-  #   - environment
+  # - application
+  # - environment
 
   # timeout for successful migration of master pods from unschedulable node
   # master_pod_move_timeout: 20m
@@ -232,7 +230,7 @@ configAwsOrGcp:
   # defines maximum volume size in GB until which auto migration happens
   # enable_ebs_gp3_migration_max_size: 1000
 
-  # GCP credentials for setting the GOOGLE_APPLICATION_CREDNETIALS environment variable
+  # GCP credentials that will be used by the operator / pods
   # gcp_credentials: ""
 
   # AWS IAM role to supply in the iam.amazonaws.com/role annotation of Postgres pods
@@ -241,16 +239,16 @@ configAwsOrGcp:
   # S3 bucket to use for shipping postgres daily logs
   # log_s3_bucket: ""
 
-  # S3 bucket to use for shipping WAL segments with WAL-E
-  # wal_s3_bucket: ""
-
   # GCS bucket to use for shipping WAL segments with WAL-E
   # wal_gs_bucket: ""
+
+  # S3 bucket to use for shipping WAL segments with WAL-E
+  # wal_s3_bucket: ""
 
 # configure K8s cron job managed by the operator
 configLogicalBackup:
   # image for pods of the logical backup job (example runs pg_dumpall)
-  logical_backup_docker_image: "registry.opensource.zalan.do/acid/logical-backup:v.1.6.0"
+  logical_backup_docker_image: "registry.opensource.zalan.do/acid/logical-backup:v1.6.0"
   # S3 Access Key ID
   logical_backup_s3_access_key_id: ""
   # S3 bucket to store backup results
@@ -274,37 +272,32 @@ configTeamsApi:
   # operator watches for PostgresTeam CRs to assign additional teams and members to clusters
   enable_postgres_team_crd: false
   # toogle to create additional superuser teams from PostgresTeam CRs
-  # enable_postgres_team_crd_superusers: "false"
+  # enable_postgres_team_crd_superusers: false
 
   # toggle to grant superuser to team members created from the Teams API
-  # enable_team_superuser: false
-
+  enable_team_superuser: false
   # toggles usage of the Teams API by the operator
   enable_teams_api: false
   # should contain a URL to use for authentication (username and token)
-  # pam_configuration: https://info.example.com/oauth2/tokeninfo?access_token= uid realm=/employees
+  # pam_configuration: ""
 
   # operator will add all team member roles to this group and add a pg_hba line
-  # pam_role_name: zalandos
-
+  pam_role_name: zalandos
   # List of teams which members need the superuser role in each Postgres cluster
   # postgres_superuser_teams:
-  #   - postgres_superusers
+  # - postgres_superusers
 
   # List of roles that cannot be overwritten by an application, team or infrastructure role
-  # protected_role_names:
-  #   - admin
+  protected_role_names:
+  - admin
   # role name to grant to team members created from the Teams API
-  # team_admin_role: "admin"
-
+  team_admin_role: admin
   # postgres config parameters to apply to each team member role
-  # team_api_role_configuration:
-  #   log_statement:all
-
+  team_api_role_configuration:
+    log_statement: all
   # URL of the Teams API service
   # teams_api_url: http://fake-teams-api.default.svc.cluster.local
 
-# configure connection pooler deployment created by the operator
 configConnectionPooler:
   # db schema to install lookup function into
   connection_pooler_schema: "pooler"

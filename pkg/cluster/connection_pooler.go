@@ -22,7 +22,7 @@ import (
 	"github.com/zalando/postgres-operator/pkg/util/k8sutil"
 )
 
-// K8S objects that are belong to connection pooler
+// ConnectionPoolerObjects K8s objects that are belong to connection pooler
 type ConnectionPoolerObjects struct {
 	Deployment  *appsv1.Deployment
 	Service     *v1.Service
@@ -78,22 +78,22 @@ func needReplicaConnectionPoolerWorker(spec *acidv1.PostgresSpec) bool {
 // have e.g. different `application` label, so that recreatePod operation will
 // not interfere with it (it lists all the pods via labels, and if there would
 // be no difference, it will recreate also pooler pods).
-func (c *Cluster) connectionPoolerLabelsSelector(role PostgresRole) *metav1.LabelSelector {
-	connectionPoolerLabels := labels.Set(map[string]string{})
+func (c *Cluster) connectionPoolerLabels(role PostgresRole, addExtraLabels bool) *metav1.LabelSelector {
+	poolerLabels := c.labelsSet(addExtraLabels)
 
-	extraLabels := labels.Set(map[string]string{
-		"connection-pooler": c.connectionPoolerName(role),
-		"application":       "db-connection-pooler",
-		"spilo-role":        string(role),
-		"cluster-name":      c.Name,
-		"Namespace":         c.Namespace,
-	})
+	// TODO should be config values
+	poolerLabels["application"] = "db-connection-pooler"
+	poolerLabels["connection-pooler"] = c.connectionPoolerName(role)
 
-	connectionPoolerLabels = labels.Merge(connectionPoolerLabels, c.labelsSet(false))
-	connectionPoolerLabels = labels.Merge(connectionPoolerLabels, extraLabels)
+	if addExtraLabels {
+		extraLabels := map[string]string{}
+		extraLabels[c.OpConfig.PodRoleLabel] = string(role)
+
+		poolerLabels = labels.Merge(poolerLabels, extraLabels)
+	}
 
 	return &metav1.LabelSelector{
-		MatchLabels:      connectionPoolerLabels,
+		MatchLabels:      poolerLabels,
 		MatchExpressions: nil,
 	}
 }
@@ -284,9 +284,9 @@ func (c *Cluster) generateConnectionPoolerPodTemplate(role PostgresRole) (
 
 	podTemplate := &v1.PodTemplateSpec{
 		ObjectMeta: metav1.ObjectMeta{
-			Labels:      c.connectionPoolerLabelsSelector(role).MatchLabels,
+			Labels:      c.connectionPoolerLabels(role, true).MatchLabels,
 			Namespace:   c.Namespace,
-			Annotations: c.generatePodAnnotations(spec),
+			Annotations: c.annotationsSet(c.generatePodAnnotations(spec)),
 		},
 		Spec: v1.PodSpec{
 			ServiceAccountName:            c.OpConfig.PodServiceAccountName,
@@ -325,7 +325,7 @@ func (c *Cluster) generateConnectionPoolerDeployment(connectionPooler *Connectio
 
 	if *numberOfInstances < constants.ConnectionPoolerMinInstances {
 		msg := "Adjusted number of connection pooler instances from %d to %d"
-		c.logger.Warningf(msg, numberOfInstances, constants.ConnectionPoolerMinInstances)
+		c.logger.Warningf(msg, *numberOfInstances, constants.ConnectionPoolerMinInstances)
 
 		*numberOfInstances = constants.ConnectionPoolerMinInstances
 	}
@@ -338,8 +338,8 @@ func (c *Cluster) generateConnectionPoolerDeployment(connectionPooler *Connectio
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        connectionPooler.Name,
 			Namespace:   connectionPooler.Namespace,
-			Labels:      c.connectionPoolerLabelsSelector(connectionPooler.Role).MatchLabels,
-			Annotations: map[string]string{},
+			Labels:      c.connectionPoolerLabels(connectionPooler.Role, true).MatchLabels,
+			Annotations: c.AnnotationsToPropagate(c.annotationsSet(nil)),
 			// make StatefulSet object its owner to represent the dependency.
 			// By itself StatefulSet is being deleted with "Orphaned"
 			// propagation policy, which means that it's deletion will not
@@ -350,7 +350,7 @@ func (c *Cluster) generateConnectionPoolerDeployment(connectionPooler *Connectio
 		},
 		Spec: appsv1.DeploymentSpec{
 			Replicas: numberOfInstances,
-			Selector: c.connectionPoolerLabelsSelector(connectionPooler.Role),
+			Selector: c.connectionPoolerLabels(connectionPooler.Role, false),
 			Template: *podTemplate,
 		},
 	}
@@ -389,8 +389,8 @@ func (c *Cluster) generateConnectionPoolerService(connectionPooler *ConnectionPo
 		ObjectMeta: metav1.ObjectMeta{
 			Name:        connectionPooler.Name,
 			Namespace:   connectionPooler.Namespace,
-			Labels:      c.connectionPoolerLabelsSelector(connectionPooler.Role).MatchLabels,
-			Annotations: map[string]string{},
+			Labels:      c.connectionPoolerLabels(connectionPooler.Role, false).MatchLabels,
+			Annotations: c.annotationsSet(c.generateServiceAnnotations(connectionPooler.Role, spec)),
 			// make StatefulSet object its owner to represent the dependency.
 			// By itself StatefulSet is being deleted with "Orphaned"
 			// propagation policy, which means that it's deletion will not
@@ -866,7 +866,7 @@ func (c *Cluster) syncConnectionPoolerWorker(oldSpec, newSpec *acidv1.Postgresql
 		}
 	}
 
-	newAnnotations := c.AnnotationsToPropagate(c.ConnectionPooler[role].Deployment.Annotations)
+	newAnnotations := c.AnnotationsToPropagate(c.annotationsSet(c.ConnectionPooler[role].Deployment.Annotations))
 	if newAnnotations != nil {
 		deployment, err = updateConnectionPoolerAnnotations(c.KubeClient, c.ConnectionPooler[role].Deployment, newAnnotations)
 		if err != nil {
